@@ -28,7 +28,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.navigation.compose.rememberNavController
 import com.example.app_journey.service.RetrofitEmailFactory
-import okhttp3.internal.wait
 
 @Composable
 fun RecuperacaoSenha(navegacao: NavHostController?) {

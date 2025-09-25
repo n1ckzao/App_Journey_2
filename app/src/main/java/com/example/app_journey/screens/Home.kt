@@ -2,15 +2,10 @@ package com.example.app_journey.screens
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.Card
 import androidx.compose.material.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -43,7 +38,8 @@ fun Home(navegacao: NavHostController?) {
                 modifier = Modifier
                     .fillMaxWidth(),
                 textAlign = TextAlign.Start,
-                fontWeight = FontWeight.ExtraBold
+                fontWeight = FontWeight.ExtraBold,
+                fontFamily = FontFamily.SansSerif
             )
             Spacer(modifier = Modifier.height(9.dp))
             Text(
@@ -53,9 +49,38 @@ fun Home(navegacao: NavHostController?) {
                 color = Color.Black
             )
 
-            Card (
+            Spacer(modifier = Modifier.height(24.dp))
 
-            ){}
+            Card (
+                modifier = Modifier
+                    .height(560.dp)
+                    .padding(16.dp)
+                    .fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = Color(0xff351D9B))
+            ){
+                Column (
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(15.dp)
+                ){
+                    Text(
+                        "Grupos",
+                        fontSize = 34.sp,
+                        color = Color.White,
+                        modifier = Modifier.fillMaxWidth(),
+                        fontWeight = FontWeight.ExtraBold
+
+                    )
+                    Row (
+                        modifier = Modifier
+                            .fillMaxWidth()
+                    ){
+                        IconButton(
+                            onClick = {}
+                        ) { }
+                    }
+                }
+            }
         }
     }
 }
