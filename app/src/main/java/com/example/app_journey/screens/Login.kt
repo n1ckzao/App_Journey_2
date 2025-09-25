@@ -1,5 +1,6 @@
 package com.example.app_journey.screens
 
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -44,6 +45,8 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.sp
 import com.example.app_journey.R
+import com.example.app_journey.model.LoginRequest
+import com.example.app_journey.model.LoginResponse
 import com.example.app_journey.service.RetrofitFactory
 import com.example.app_journey.utils.SharedPrefHelper
 import retrofit2.Callback
@@ -79,8 +82,8 @@ fun Login(navegacao: NavHostController?) {
                 Column (
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(15.dp),
-                    verticalArrangement = Arrangement.SpaceEvenly
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.Center
                 ){
                     Image(
                         painter = painterResource(R.drawable.logo),
@@ -89,7 +92,7 @@ fun Login(navegacao: NavHostController?) {
                             .fillMaxWidth()
                             .height(100.dp)
                     )
-                    Column(modifier = Modifier.fillMaxWidth().height(226.dp)) {
+                    Column(modifier = Modifier.fillMaxWidth().height(218.dp)) {
 
                         Text(text = "Login",
                             fontSize = 30.sp,
@@ -128,7 +131,7 @@ fun Login(navegacao: NavHostController?) {
                             label = { Text(text = "Email", color = Color.White) },
                             shape = RoundedCornerShape(33.dp),
                             singleLine = true,
-                            modifier = Modifier.height(55.dp).fillMaxWidth(),
+                            modifier = Modifier.height(50.dp).fillMaxWidth(),
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Email,
                                 imeAction = ImeAction.Next
@@ -153,7 +156,7 @@ fun Login(navegacao: NavHostController?) {
                             shape = RoundedCornerShape(33.dp),
                             singleLine = true,
                             modifier = Modifier
-                                .height(55.dp).fillMaxWidth(),
+                                .height(50.dp).fillMaxWidth(),
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Password,
                                 imeAction = ImeAction.Done
@@ -180,7 +183,7 @@ fun Login(navegacao: NavHostController?) {
                     Column(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(150.dp),
+                            .height(140.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Button(
@@ -210,24 +213,6 @@ fun Login(navegacao: NavHostController?) {
                             horizontalArrangement = Arrangement.Center,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text(text = "Já é um proffissional?", fontSize = 14.sp, color = Color.White, modifier = Modifier)
-                            Button(
-                                modifier = Modifier.height(35.dp),
-                                colors = ButtonDefaults.buttonColors(Color.Transparent),
-                                onClick = {
-                                    navegacao?.navigate("cadastro")
-                                }
-                            ) {
-                                Text(
-                                    text = buildAnnotatedString {
-                                        withStyle(style = SpanStyle(textDecoration = TextDecoration.Underline)) {
-                                            append("Criar conta profissional")
-                                        }
-                                    },
-                                    fontSize = 14.sp,
-                                    color = Color.White
-                                )
-                            }
 
                         }
 
@@ -241,30 +226,32 @@ fun Login(navegacao: NavHostController?) {
                                 }
 
                                 val usuarioService = RetrofitFactory().getUsuarioService()
-
-                                usuarioService.listarUsuarios().enqueue(object : Callback<Result> {
-                                    override fun onResponse(call: Call<Result>, response: Response<Result>) {
+                                val loginRequest = LoginRequest(
+                                    email = email.value,
+                                    senha = senha.value
+                                )
+                                usuarioService.loginUsuario(loginRequest).enqueue(object : Callback<LoginResponse> {
+                                    override fun onResponse(call: Call<LoginResponse>, response: Response<LoginResponse>) {
                                         if (response.isSuccessful) {
-                                            val usuarios = response.body()?.usuario ?: emptyList()
-                                            val usuarioEncontrado = usuarios.find {
-                                                it.email == email.value && it.senha == senha.value
-                                            }
-
-                                            if (usuarioEncontrado != null) {
+                                            val result = response.body()
+                                            if (result?.status == true) {
                                                 erro.value = "Login realizado com sucesso"
-                                                SharedPrefHelper.salvarEmail(context, usuarioEncontrado.email)
-                                                SharedPrefHelper.salvarIdUsuario(context, usuarioEncontrado.id_usuario) // <-- ESSA LINHA
+
+                                                // Salva os dados no SharedPreferences
+                                                SharedPrefHelper.salvarEmail(context, result.usuario?.email ?: "")
+                                                SharedPrefHelper.salvarIdUsuario(context, result.usuario?.id ?: 0)
+
+                                                // Navega pra home
                                                 navegacao?.navigate("home")
-                                            }
-                                            else {
-                                                erro.value = "Email ou senha incorretos"
+                                            } else {
+                                                erro.value = result?.message ?: "Email ou senha incorretos"
                                             }
                                         } else {
-                                            erro.value = "Erro ao buscar usuários"
+                                            erro.value = "Email ou senha incorretos"
                                         }
                                     }
 
-                                    override fun onFailure(call: Call<Result>, t: Throwable) {
+                                    override fun onFailure(call: Call<LoginResponse>, t: Throwable) {
                                         erro.value = "Erro de rede: ${t.message}"
                                     }
                                 })
