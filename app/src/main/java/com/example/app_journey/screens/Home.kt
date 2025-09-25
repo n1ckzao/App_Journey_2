@@ -71,12 +71,19 @@ fun Home(navegacao: NavHostController?) {
                         fontWeight = FontWeight.ExtraBold
 
                     )
+
+                    Spacer(modifier = Modifier.height(13.dp))
+
                     Row (
                         modifier = Modifier
                             .fillMaxWidth()
                     ){
-                        IconButton(
-                            onClick = {}
+                        Button(
+                            onClick = {},
+                            modifier = Modifier
+                                .width(100.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.White)
+
                         ) { }
                     }
                 }
