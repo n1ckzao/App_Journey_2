@@ -200,7 +200,10 @@ fun CadastroProfissional(navegacao: NavHostController) {
                                     data_nascimento = dataNascimento.value,
                                     email = email.value,
                                     senha = senha.value,
-                                    tipo_usuario = "Profissional"
+                                    tipo_usuario = "Profissional",
+                                    id_usuario = 1,
+                                    foto_perfil = "",
+                                    descricao = ""
                                 )
 
 

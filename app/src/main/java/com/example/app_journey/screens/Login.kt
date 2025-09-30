@@ -44,12 +44,13 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.sp
 import com.example.app_journey.R
+import com.example.app_journey.model.LoginRequest
+import com.example.app_journey.model.LoginResponse
 import com.example.app_journey.service.RetrofitFactory
 import com.example.app_journey.utils.SharedPrefHelper
 import retrofit2.Callback
 import retrofit2.Call
 import retrofit2.Response
-import com.example.app_journey.model.Result
 
 @Composable
 fun Login(navegacao: NavHostController?) {
@@ -242,43 +243,62 @@ fun Login(navegacao: NavHostController?) {
 
                                 val usuarioService = RetrofitFactory().getUsuarioService()
 
-                                usuarioService.listarUsuarios().enqueue(object : Callback<Result> {
-                                    override fun onResponse(call: Call<Result>, response: Response<Result>) {
-                                        if (response.isSuccessful) {
-                                            val usuarios = response.body()?.usuario ?: emptyList()
-                                            val usuarioEncontrado = usuarios.find {
-                                                it.email == email.value && it.senha == senha.value
-                                            }
+                                // aqui você cria o body para a requisição
+                                val loginRequest = LoginRequest(
+                                    email = email.value,
+                                    senha = senha.value
+                                )
 
-                                            if (usuarioEncontrado != null) {
+                                usuarioService.loginUsuario(loginRequest).enqueue(object : Callback<LoginResponse> {
+                                    override fun onResponse(
+                                        call: Call<LoginResponse>,
+                                        response: Response<LoginResponse>
+                                    ) {
+
+                                        if (response.isSuccessful) {
+                                            val loginResponse = response.body()
+
+                                            if (loginResponse != null && loginResponse.status) {
                                                 erro.value = "Login realizado com sucesso"
-                                                SharedPrefHelper.salvarEmail(context, usuarioEncontrado.email)
-                                                SharedPrefHelper.salvarIdUsuario(context, usuarioEncontrado.id_usuario) // <-- ESSA LINHA
+
+                                                // salva dados no SharedPreferences
+                                                loginResponse.usuario?.let { usuario ->
+
+
+
+                                                    val usuario = response.body()!!
+                                                    SharedPrefHelper.salvarUsuario(context, usuario)
+                                                    SharedPrefHelper.salvarIdUsuario(context, usuario.usuario?.id!!)
+                                                    SharedPrefHelper.salvarEmail(context, usuario.usuario.email)
+                                                }
+
+                                                // navega para home
                                                 navegacao?.navigate("home")
-                                            }
-                                            else {
-                                                erro.value = "Email ou senha incorretos"
+                                            } else {
+                                                erro.value = loginResponse?.message ?: "Email ou senha incorretos"
                                             }
                                         } else {
-                                            erro.value = "Erro ao buscar usuários"
+                                            erro.value = "Erro ao fazer login: ${response.code()}"
                                         }
                                     }
 
-                                    override fun onFailure(call: Call<Result>, t: Throwable) {
+                                    override fun onFailure(call: Call<LoginResponse>, t: Throwable) {
                                         erro.value = "Erro de rede: ${t.message}"
                                     }
                                 })
-
-
                             },
-
                             shape = RoundedCornerShape(48.dp),
                             modifier = Modifier
                                 .width(250.dp)
                                 .height(40.dp),
                             colors = ButtonDefaults.buttonColors(containerColor = Color.White)
                         ) {
-                            Text(text = "Login", fontSize = 15.sp, fontWeight = FontWeight.ExtraBold, color = Color(0xff341E9B))
+                            Text(
+                                text = "Login",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = Color(0xff341E9B)
+                            )
                         }
                     }
                 }

@@ -1,26 +1,20 @@
 package com.example.app_journey.screens
 
-
 import android.net.Uri
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -28,55 +22,74 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
+import com.example.app_journey.model.Result
+import com.example.app_journey.model.Usuario
+import com.example.app_journey.service.RetrofitInstance
 import com.example.app_journey.ui.theme.*
+import com.example.app_journey.utils.SharedPrefHelper
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProfileScreen(navController: NavHostController) {
-    var profileImageUri by remember { mutableStateOf<Uri?>(null) }
+fun Perfil(navegacao: NavHostController) {
+    val usuarioLogado = remember { mutableStateOf<Usuario?>(null) }
+    val loading = remember { mutableStateOf(true) }
+    val errorMessage = remember { mutableStateOf<String?>(null) }
+    val context = LocalContext.current
+    val emailSalvo = SharedPrefHelper.recuperarEmail(context)
+    val usuarioSalvo = SharedPrefHelper.recuperarUsuario(context)
 
-    // Launcher para selecionar imagem
-    val launcher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        profileImageUri = uri
+    LaunchedEffect(usuarioSalvo) {
+        loading.value = true
+        val usuarioSalvo = SharedPrefHelper.recuperarUsuario(context) // pega do cache
+        if (usuarioSalvo != null) {
+            usuarioLogado.value = usuarioSalvo
+            errorMessage.value = null
+        } else {
+            Log.e("aaaaaaaaaaaaaa", "${usuarioLogado}, ${usuarioSalvo}")
+            errorMessage.value = "Usuário não encontrado no cache."
+        }
+        loading.value = false
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {},
-                navigationIcon = {
-                    IconButton(onClick = { navController.navigate("home") }) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Voltar",
-                            tint = White
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = PurpleMedium,
-                    titleContentColor = White
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(PrimaryPurple)
+            .padding(16.dp)
+    ) {
+        when {
+            loading.value -> {
+                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            }
+
+            errorMessage.value != null -> {
+                Text(
+                    text = errorMessage.value ?: "Erro desconhecido",
+                    color = Color.Red,
+                    modifier = Modifier.align(Alignment.Center)
                 )
-            )
-        }
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(color = PrimaryPurple)
-                .padding(padding)
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            CardInfoPessoais(
-                profileImageUri = profileImageUri,
-                onSelectImage = { launcher.launch("image/*") },
-                onEditClick = { navController.navigate("editar_info") }
-            )
-            CardBio(onEditClick = { navController.navigate("editar_bio") })
+            }
+
+            usuarioLogado.value != null -> {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    CardInfoPessoais(
+                        profileImageUri = usuarioLogado.value!!.foto_perfil?.let { Uri.parse(it) },
+                        nome = usuarioLogado.value!!.nome_completo,
+                        email = usuarioLogado.value!!.email,
+                        onSelectImage = {},
+                        onEditClick = { navegacao.navigate("editar_info") }
+                    )
+                    CardBio(
+                        descricao = usuarioLogado.value!!.descricao ?: "",
+                        onEditClick = { navegacao.navigate("editar_info") }
+                    )
+                }
+            }
         }
     }
 }
@@ -84,6 +97,8 @@ fun ProfileScreen(navController: NavHostController) {
 @Composable
 fun CardInfoPessoais(
     profileImageUri: Uri?,
+    nome: String,
+    email: String,
     onSelectImage: () -> Unit,
     onEditClick: () -> Unit
 ) {
@@ -117,7 +132,6 @@ fun CardInfoPessoais(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                // Avatar
                 if (profileImageUri != null) {
                     Image(
                         painter = rememberAsyncImagePainter(profileImageUri),
@@ -145,19 +159,17 @@ fun CardInfoPessoais(
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            InfoRow("Nome completo", "Wilton Pereira Sampaio")
-            InfoRow("Email", "xxxxxxxxxx@gmail.com")
-            InfoRow("Telefone", "(11) 94321-2345")
+            InfoRow("Nome completo", nome)
+            InfoRow("Email", email)
         }
     }
 }
 
 @Composable
-fun CardBio(onEditClick: () -> Unit) {
+fun CardBio(onEditClick: () -> Unit, descricao: String) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = PurpleDarker),
-        border = androidx.compose.foundation.BorderStroke(1.dp, PurpleMedium)
+        colors = CardDefaults.cardColors(containerColor = PurpleDarker)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(
@@ -182,7 +194,7 @@ fun CardBio(onEditClick: () -> Unit) {
             Spacer(modifier = Modifier.height(16.dp))
 
             Text(
-                "Sou desenvolvedor full-stack com experiência em desenvolvimento de sistemas, APIs, IoT, JS, Python e Kotlin. Apaixonado por tecnologia e inovação.",
+                text = descricao.ifBlank { "Nenhuma biografia cadastrada" },
                 color = White,
                 fontSize = 14.sp
             )
@@ -198,14 +210,15 @@ fun InfoRow(label: String, value: String) {
             .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Text(text = "$label:", color = White, fontWeight = androidx.compose.ui.text.font.FontWeight.Medium)
+        Text(text = "$label:", color = White, fontWeight = FontWeight.Medium)
         Text(text = value, color = White)
     }
 }
 
-@Preview(showBackground = true)
+@Preview
 @Composable
-fun ProfileScreenPreview() {
-    val fakeNav = rememberNavController()
-    ProfileScreen(navController = fakeNav)
+private fun PerfilPreview() {
+    val fakeNavController = rememberNavController()
+    Perfil(navegacao = fakeNavController)
 }
+

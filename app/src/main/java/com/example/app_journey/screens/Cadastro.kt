@@ -267,7 +267,10 @@ fun Cadastro(navegacao: NavHostController) {
                                     data_nascimento = dataNascimento.value,
                                     email = email.value,
                                     senha = senha.value,
-                                    tipo_usuario = "Estudante"
+                                    tipo_usuario = "Estudante",
+                                    id_usuario = 1,
+                                    foto_perfil = "",
+                                    descricao = ""
                                 )
                                 Log.d("#####", "#######  ${usuario}   ################################")
 
