@@ -28,6 +28,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.example.app_journey.model.Usuario
+import com.example.app_journey.model.UsuarioResult
 import com.example.app_journey.screens.*
 import com.example.app_journey.service.RetrofitInstance
 import com.example.app_journey.utils.SharedPrefHelper
@@ -57,19 +58,26 @@ fun AppContent() {
 
         if (idSalvo != null) {
             RetrofitInstance.usuarioService.getUsuarioPorId(idSalvo)
-                .enqueue(object : Callback<Usuario> {
-                    override fun onResponse(call: Call<Usuario>, response: Response<Usuario>) {
+                .enqueue(object : Callback<UsuarioResult> {
+                    override fun onResponse(call: Call<UsuarioResult>, response: Response<UsuarioResult>) {
                         if (response.isSuccessful) {
-                            var usuarioLogado = response.body() // salva o usuário carregado
+                            val result = response.body()
+                            if (result != null && !result.usuario.isNullOrEmpty()) {
+                                val usuarioLogado = result.usuario[0] // pega o primeiro usuário
+                                // atualizar estado ou UI aqui
+                            } else {
+                                Log.e("MainActivity", "Usuário não encontrado")
+                            }
                         } else {
                             Log.e("MainActivity", "Erro ao carregar usuário: ${response.code()}")
                         }
                     }
 
-                    override fun onFailure(call: Call<Usuario>, t: Throwable) {
-                        Log.e("MainActivity", "Falha na conexão: ${t.message}")
+                    override fun onFailure(call: Call<UsuarioResult>, t: Throwable) {
+                        Log.e("MainActivity", "Erro de rede: ${t.message}")
                     }
                 })
+
         } else {
             Log.w("MainActivity", "id_usuario não encontrado no SharedPreferences")
         }

@@ -32,3 +32,9 @@ data class LoginRequest(
     val email: String,
     val senha: String
 )
+
+data class UsuarioResult(
+    val status: Boolean,
+    val status_code: Int,
+    val usuario: List<Usuario>?
+)

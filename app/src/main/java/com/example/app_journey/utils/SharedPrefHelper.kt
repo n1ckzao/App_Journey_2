@@ -2,8 +2,8 @@ package com.example.app_journey.utils
 
 import android.content.Context
 import android.content.SharedPreferences
-import com.example.app_journey.model.LoginResponse
 import com.example.app_journey.model.Usuario
+import com.example.app_journey.model.UsuarioResponse
 import com.google.gson.Gson
 
 object SharedPrefHelper {
@@ -26,7 +26,7 @@ object SharedPrefHelper {
     }
 
     // ---------------- Usuário ----------------
-    fun salvarUsuario(context: Context, usuario: LoginResponse) {
+    fun salvarUsuario(context: Context, usuario: UsuarioResponse) {
         val usuarioJson = Gson().toJson(usuario)
         getPreferences(context).edit().putString(KEY_USUARIO_CACHE, usuarioJson).apply()
     }

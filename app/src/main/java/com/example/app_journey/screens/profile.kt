@@ -7,6 +7,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.runtime.*
@@ -22,9 +24,9 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
-import com.example.app_journey.model.Result
 import com.example.app_journey.model.Usuario
-import com.example.app_journey.service.RetrofitInstance
+import com.example.app_journey.model.UsuarioResult
+import com.example.app_journey.service.RetrofitFactory
 import com.example.app_journey.ui.theme.*
 import com.example.app_journey.utils.SharedPrefHelper
 import retrofit2.Call
@@ -37,20 +39,41 @@ fun Perfil(navegacao: NavHostController) {
     val loading = remember { mutableStateOf(true) }
     val errorMessage = remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
-    val emailSalvo = SharedPrefHelper.recuperarEmail(context)
-    val usuarioSalvo = SharedPrefHelper.recuperarUsuario(context)
 
-    LaunchedEffect(usuarioSalvo) {
-        loading.value = true
-        val usuarioSalvo = SharedPrefHelper.recuperarUsuario(context) // pega do cache
-        if (usuarioSalvo != null) {
-            usuarioLogado.value = usuarioSalvo
-            errorMessage.value = null
+    val idUsuario = SharedPrefHelper.recuperarIdUsuario(context) ?: -1
+
+    LaunchedEffect(idUsuario) {
+        if (idUsuario != -1) {
+            loading.value = true
+            val usuarioService = RetrofitFactory().getUsuarioService()
+            usuarioService.getUsuarioPorId(idUsuario)
+                .enqueue(object : Callback<UsuarioResult> {
+                    override fun onResponse(
+                        call: Call<UsuarioResult>,
+                        response: Response<UsuarioResult>
+                    ) {
+                        loading.value = false
+                        if (response.isSuccessful) {
+                            val result = response.body()
+                            if (result != null && result.usuario != null && result.usuario.isNotEmpty()) {
+                                usuarioLogado.value = result.usuario[0] // pega o primeiro usuário
+                                errorMessage.value = null
+                            } else {
+                                errorMessage.value = "Usuário não encontrado"
+                            }
+                        } else {
+                            errorMessage.value = "Erro ao carregar usuário: ${response.code()}"
+                        }
+                    }
+
+                    override fun onFailure(call: Call<UsuarioResult>, t: Throwable) {
+                        loading.value = false
+                        errorMessage.value = "Erro de rede: ${t.message}"
+                    }
+                })
         } else {
-            Log.e("aaaaaaaaaaaaaa", "${usuarioLogado}, ${usuarioSalvo}")
-            errorMessage.value = "Usuário não encontrado no cache."
+            errorMessage.value = "Usuário não logado"
         }
-        loading.value = false
     }
 
     Box(
@@ -60,18 +83,12 @@ fun Perfil(navegacao: NavHostController) {
             .padding(16.dp)
     ) {
         when {
-            loading.value -> {
-                CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
-            }
-
-            errorMessage.value != null -> {
-                Text(
-                    text = errorMessage.value ?: "Erro desconhecido",
-                    color = Color.Red,
-                    modifier = Modifier.align(Alignment.Center)
-                )
-            }
-
+            loading.value -> CircularProgressIndicator(modifier = Modifier.align(Alignment.Center))
+            errorMessage.value != null -> Text(
+                text = errorMessage.value ?: "Erro desconhecido",
+                color = Color.Red,
+                modifier = Modifier.align(Alignment.Center)
+            )
             usuarioLogado.value != null -> {
                 Column(
                     modifier = Modifier.fillMaxSize(),
@@ -97,8 +114,8 @@ fun Perfil(navegacao: NavHostController) {
 @Composable
 fun CardInfoPessoais(
     profileImageUri: Uri?,
-    nome: String,
-    email: String,
+    nome: String?,
+    email: String?,
     onSelectImage: () -> Unit,
     onEditClick: () -> Unit
 ) {
@@ -203,7 +220,7 @@ fun CardBio(onEditClick: () -> Unit, descricao: String) {
 }
 
 @Composable
-fun InfoRow(label: String, value: String) {
+fun InfoRow(label: String, value: String?) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -211,7 +228,9 @@ fun InfoRow(label: String, value: String) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Text(text = "$label:", color = White, fontWeight = FontWeight.Medium)
-        Text(text = value, color = White)
+        if (value != null) {
+            Text(text = value, color = White)
+        }
     }
 }
 
@@ -221,4 +240,3 @@ private fun PerfilPreview() {
     val fakeNavController = rememberNavController()
     Perfil(navegacao = fakeNavController)
 }
-
