@@ -29,4 +29,9 @@ class RetrofitFactory {
     fun getGrupoService(): GrupoService {
         return retrofit.create(GrupoService::class.java)
     }
+
+    fun getAreaService(): AreaService {
+        return retrofit.create(AreaService::class.java)
+    }
+
 }
