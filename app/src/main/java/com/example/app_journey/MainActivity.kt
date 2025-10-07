@@ -1,25 +1,24 @@
+// MainActivity.kt
 package com.example.app_journey
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
-import androidx.compose.material.icons.filled.Create
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -28,16 +27,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import com.example.app_journey.screens.Cadastro
-import com.example.app_journey.screens.Home
-import com.example.app_journey.screens.Login
-import com.example.app_journey.screens.RecuperacaoSenha
-import com.example.app_journey.screens.RedefinirSenha
-import com.example.app_journey.screens.VerificarEmail
-import com.example.app_journey.screens.DrawerMenu
-import com.example.app_journey.screens.ProfileScreen
+import com.example.app_journey.model.Usuario
+import com.example.app_journey.model.UsuarioResult
+import com.example.app_journey.screens.*
+import com.example.app_journey.service.RetrofitInstance
 import com.example.app_journey.utils.SharedPrefHelper
 import kotlinx.coroutines.launch
+import retrofit2.*
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,34 +49,53 @@ class MainActivity : ComponentActivity() {
 @Composable
 fun AppContent() {
     val navController = rememberNavController()
-    val context = androidx.compose.ui.platform.LocalContext.current
-    val rotaInicial = if (SharedPrefHelper.obterEmail(context) != null) {
-        "login"
-    } else {
-        "login"
-    }
-
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
+    val context = LocalContext.current
+    LaunchedEffect(Unit) {
+
+        val idSalvo = SharedPrefHelper.recuperarIdUsuario(context)
+
+        if (idSalvo != null) {
+            RetrofitInstance.usuarioService.getUsuarioPorId(idSalvo)
+                .enqueue(object : Callback<UsuarioResult> {
+                    override fun onResponse(call: Call<UsuarioResult>, response: Response<UsuarioResult>) {
+                        if (response.isSuccessful) {
+                            val result = response.body()
+                            if (result != null && !result.usuario.isNullOrEmpty()) {
+                                val usuarioLogado = result.usuario[0] // pega o primeiro usuário
+                                // atualizar estado ou UI aqui
+                            } else {
+                                Log.e("MainActivity", "Usuário não encontrado")
+                            }
+                        } else {
+                            Log.e("MainActivity", "Erro ao carregar usuário: ${response.code()}")
+                        }
+                    }
+
+                    override fun onFailure(call: Call<UsuarioResult>, t: Throwable) {
+                        Log.e("MainActivity", "Erro de rede: ${t.message}")
+                    }
+                })
+
+        } else {
+            Log.w("MainActivity", "id_usuario não encontrado no SharedPreferences")
+        }
+    }
 
     // Observa a rota atual
     val navBackStackEntry = navController.currentBackStackEntryAsState()
     val rotaAtual = navBackStackEntry.value?.destination?.route
 
-    // Somente telas que devem mostrar a AppBar + Drawer
-    val rotasComBarra = listOf(
-        "profile",
-        "home"
-    )
+    // Rotas que exibem AppBar + Drawer
+    val rotasComBarra = listOf("profile", "home")
 
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            DrawerMenu(
-                onOptionSelected = {
-                    scope.launch { drawerState.close() }
-                }
-            )
+            DrawerMenu(onOptionSelected = {
+                scope.launch { drawerState.close() }
+            })
         },
         gesturesEnabled = drawerState.isOpen
     ) {
@@ -104,8 +119,8 @@ fun AppContent() {
                                         }
                                 ) {
                                     Image(
-                                        painter = painterResource(id = R.drawable.logoclaro), // sua imagem no drawable
-                                        contentDescription = "Foto de perfil",
+                                        painter = painterResource(id = R.drawable.logoclaro),
+                                        contentDescription = "Logo",
                                         modifier = Modifier.fillMaxSize()
                                     )
                                 }
@@ -117,15 +132,13 @@ fun AppContent() {
                             }
                         },
                         navigationIcon = {
-                            IconButton(onClick = {
-                                scope.launch { drawerState.open() }
-                            }) {
+                            IconButton(onClick = { scope.launch { drawerState.open() } }) {
                                 Icon(Icons.Filled.Menu, contentDescription = "Menu")
                             }
                         },
                         actions = {
-                            IconButton(onClick = {  navController.navigate("profile") }) {
-                                Icon(Icons.Default.AccountCircle, contentDescription = "Modo de tema")
+                            IconButton(onClick = { navController.navigate("profile") }) {
+                                Icon(Icons.Default.AccountCircle, contentDescription = "Perfil")
                             }
                         }
                     )
@@ -134,27 +147,41 @@ fun AppContent() {
         ) { paddingValues ->
             NavHost(
                 navController = navController,
-                startDestination = rotaInicial,
+                startDestination = "login",
                 modifier = Modifier.padding(paddingValues)
             ) {
+                // Rotas
                 composable("login") { Login(navController) }
                 composable("cadastro") { Cadastro(navController) }
                 composable("recuperacao_senha") { RecuperacaoSenha(navController) }
                 composable("home") { Home(navController) }
-                composable("profile") { ProfileScreen(navController) }
+
+
+                /*composable("editar_info") {
+                    // Aqui você pode passar o usuário buscado no Perfil
+                    // ou deixar o EditarInfo também buscar sozinho
+                    EditarInfo(
+                        navController = navController,
+                        usuario = , // Ajuste depois se quiser centralizar o estado
+                        onSave = { /* salvar alterações */ }
+                    )
+                }*/
+
                 composable("verificar_email/{email}") { backStackEntry ->
                     val email = backStackEntry.arguments?.getString("email")
-                    if (email != null) {
-                        VerificarEmail(navController, email)
-                    }
+                    email?.let { VerificarEmail(navController, it) }
                 }
+
                 composable("redefinir_senha/{idUsuario}") { backStackEntry ->
                     val idUsuario = backStackEntry.arguments?.getString("idUsuario")?.toIntOrNull()
-                    if (idUsuario != null) {
-                        RedefinirSenha(navController, idUsuario)
-                    }
+                    idUsuario?.let { RedefinirSenha(navController, it) }
                 }
             }
         }
     }
+}
+
+@Composable
+fun Perfil() {
+
 }
