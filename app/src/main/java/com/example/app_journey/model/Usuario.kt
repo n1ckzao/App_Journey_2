@@ -1,5 +1,4 @@
 package com.example.app_journey.model
-
 data class Usuario(
     val id_usuario: Int,
     val nome_completo: String,

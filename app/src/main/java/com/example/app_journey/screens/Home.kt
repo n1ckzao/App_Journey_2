@@ -28,7 +28,7 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 @Composable
-fun Home(navegacao: NavHostController?) {
+fun Home(navegacao: NavHostController) {
     val grupos = remember { mutableStateListOf<Grupo>() }
     val context = LocalContext.current
 

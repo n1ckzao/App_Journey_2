@@ -1,102 +1,321 @@
 package com.example.app_journey.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material.Button
-import androidx.compose.material.ButtonDefaults
-import androidx.compose.material.Icon
-import androidx.compose.material.IconButton
-import androidx.compose.material.OutlinedTextField
-import androidx.compose.material.Scaffold
-import androidx.compose.material.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import android.net.Uri
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.*
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
+import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import coil.compose.rememberAsyncImagePainter
 import com.example.app_journey.model.Usuario
-import androidx.compose.ui.text.input.TextFieldValue
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.navigation.compose.rememberNavController
 import com.example.app_journey.service.RetrofitInstance
-import com.example.app_journey.ui.theme.PurpleMedium
-import retrofit2.*
+import com.example.app_journey.ui.theme.*
+import com.example.app_journey.utils.AzureUploader
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EditarInfo(
-    navController: NavHostController,
+    navController: NavController,
     usuario: Usuario,
     onSave: (Usuario) -> Unit
 ) {
-    var nome by remember { mutableStateOf(TextFieldValue(usuario.nome_completo)) }
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    var nome by remember { mutableStateOf(usuario.nome_completo) }
     var email by remember { mutableStateOf(usuario.email) }
+    var dataNascimento by remember { mutableStateOf(usuario.data_nascimento?.take(10) ?: "") }
+    var descricao by remember { mutableStateOf(usuario.descricao ?: "") }
+    var senha by remember { mutableStateOf("") } // não mostra senha criptografada
+    var tipoUsuario by remember { mutableStateOf(usuario.tipo_usuario) }
+    var imagemUri by remember { mutableStateOf<Uri?>(null) }
+    var imagemUrl by remember { mutableStateOf(usuario.foto_perfil ?: "") }
+    var enviando by remember { mutableStateOf(false) }
 
-    val isModified = nome.text != usuario.nome_completo || email != usuario.email
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Editar Informações") },
-                navigationIcon = {
-                    IconButton(onClick = { navController?.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Voltar")
+    // Launcher para pegar imagem da galeria
+    val launcher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        imagemUri = uri
+        uri?.let {
+            scope.launch {
+                enviando = true
+                val inputStream = context.contentResolver.openInputStream(it)
+                val fileName = "foto_perfil_${System.currentTimeMillis()}.jpg"
+                if (inputStream != null) {
+                    val url = AzureUploader.uploadImageToAzure(inputStream, fileName)
+                    if (url != null) {
+                        imagemUrl = url
+                        Toast.makeText(context, "Imagem atualizada com sucesso!", Toast.LENGTH_SHORT).show()
+                    } else {
+                        Toast.makeText(context, "Falha no upload da imagem", Toast.LENGTH_SHORT).show()
                     }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = PurpleMedium)
-            )
+                }
+                enviando = false
+            }
         }
-    ) { padding ->
-        Column(
+    }
+
+    val outlinedColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color.White,
+        unfocusedTextColor = Color.White,
+        cursorColor = Color.White,
+        focusedBorderColor = Color.White,
+        unfocusedBorderColor = Color.Gray,
+        focusedLabelColor = Color.White,
+        unfocusedLabelColor = Color.Gray,
+        unfocusedContainerColor = Color.Transparent,
+        focusedContainerColor = Color.Transparent
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(PrimaryPurple)
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            "Editar Perfil",
+            fontWeight = FontWeight.Bold,
+            fontSize = 22.sp,
+            color = Color.White
+        )
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        // Card com imagem e nome
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = PurpleDarker)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(100.dp)
+                        .clip(CircleShape)
+                        .clickable { launcher.launch("image/*") },
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (imagemUrl.isNotBlank()) {
+                        Image(
+                            painter = rememberAsyncImagePainter(imagemUrl),
+                            contentDescription = "Foto de perfil",
+                            modifier = Modifier.fillMaxSize()
+                        )
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(PurpleLighter),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = nome.firstOrNull()?.toString() ?: "?",
+                                fontSize = 36.sp,
+                                color = Color.White,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+                Text("Toque para alterar a foto", color = Color.Gray, fontSize = 14.sp)
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                OutlinedTextField(
+                    value = nome,
+                    onValueChange = { nome = it },
+                    label = { Text("Nome completo") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = outlinedColors
+                )
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = PurpleDarker)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+
+                OutlinedTextField(
+                    value = email,
+                    onValueChange = { email = it },
+                    label = { Text("Email") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = outlinedColors
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = dataNascimento,
+                    onValueChange = {
+                        // mantém formato AAAA-MM-DD
+                        dataNascimento = it.take(10).replace(Regex("[^0-9-]"), "")
+                    },
+                    label = { Text("Data de Nascimento (AAAA-MM-DD)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = outlinedColors
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = descricao,
+                    onValueChange = { descricao = it },
+                    label = { Text("Descrição") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = outlinedColors
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = senha,
+                    onValueChange = { senha = it },
+                    label = { Text("Nova Senha") },
+                    visualTransformation = PasswordVisualTransformation(),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = outlinedColors
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedTextField(
+                    value = tipoUsuario,
+                    onValueChange = { tipoUsuario = it },
+                    label = { Text("Tipo de Usuário") },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = outlinedColors
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Button(
+                    onClick = {
+                        val usuarioAtualizado = usuario.copy(
+                            nome_completo = nome,
+                            email = email,
+                            data_nascimento = dataNascimento.take(10),
+                            foto_perfil = imagemUrl,
+                            descricao = descricao,
+                            senha = if (senha.isNotBlank()) senha else usuario.senha,
+                            tipo_usuario = tipoUsuario
+                        )
+
+                        RetrofitInstance.usuarioService
+                            .atualizarUsuarioPorId(usuario.id_usuario, usuarioAtualizado)
+                            .enqueue(object : retrofit2.Callback<Usuario> {
+                                override fun onResponse(
+                                    call: retrofit2.Call<Usuario>,
+                                    response: retrofit2.Response<Usuario>
+                                ) {
+                                    if (response.isSuccessful) {
+                                        onSave(usuarioAtualizado)
+                                        navController.previousBackStackEntry
+                                            ?.savedStateHandle
+                                            ?.set("usuarioAtualizado", usuarioAtualizado)
+                                        navController.popBackStack()
+                                    } else {
+                                        Toast.makeText(context, "Erro ao atualizar (${response.code()})", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+
+                                override fun onFailure(call: retrofit2.Call<Usuario>, t: Throwable) {
+                                    Toast.makeText(context, "Falha: ${t.message}", Toast.LENGTH_SHORT).show()
+                                }
+                            })
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = PurpleLighter)
+                ) {
+                    Text("Salvar alterações", color = Color(0xFF341E9B))
+                }
+            }
+        }
+    }
+
+    if (enviando) {
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .background(Color(0x80000000)),
+            contentAlignment = Alignment.Center
         ) {
-            OutlinedTextField(
-                value = nome,
-                onValueChange = { nome = it },
-                label = { Text("Nome completo") },
-                modifier = Modifier.fillMaxWidth()
-            )
-            OutlinedTextField(
-                value = email,
-                onValueChange = { email = it },
-                label = { Text("Email") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
-            )
+            CircularProgressIndicator(color = Color.White)
+        }
+    }
+}
 
-            Spacer(modifier = Modifier.height(32.dp))
+@Composable
+fun EditarInfoWrapper(navController: NavController, idUsuario: Int?) {
+    var usuario by remember { mutableStateOf<Usuario?>(null) }
+    var loading by remember { mutableStateOf(true) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
 
-            Button(
-                onClick = {
-                    val usuarioAtualizado = usuario.copy(
-                        nome_completo = nome.text,
-                        email = email
-                    )
-                    onSave (usuarioAtualizado)
-                    navController?.popBackStack()
-                },
-                enabled = isModified,
-                colors = ButtonDefaults.buttonColors(backgroundColor = Color(0xFFB8BDFA))
-            ) {
-                Text("Salvar", color = Color(0xFF341E9B))
+    LaunchedEffect(idUsuario) {
+        if (idUsuario != null) {
+            try {
+                val result = RetrofitInstance.usuarioService.getUsuarioPorIdSuspend(idUsuario)
+                usuario = result.usuario?.firstOrNull()
+                if (usuario == null) errorMessage = "Usuário não encontrado"
+            } catch (e: Exception) {
+                errorMessage = "Erro ao carregar usuário"
+            } finally {
+                loading = false
+            }
+        } else {
+            loading = false
+            errorMessage = "ID inválido"
+        }
+    }
+
+    when {
+        loading -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        }
+        usuario != null -> {
+            EditarInfo(
+                navController = navController,
+                usuario = usuario!!,
+                onSave = { usuarioAtualizado ->
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("usuarioAtualizado", usuarioAtualizado)
+                    navController.popBackStack()
+                }
+            )
+        }
+        else -> {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text(text = errorMessage ?: "Erro desconhecido")
             }
         }
     }

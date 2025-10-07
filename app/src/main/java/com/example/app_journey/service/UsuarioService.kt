@@ -20,8 +20,12 @@ interface UsuarioService {
     @GET("usuario/{id}")
     fun listarUsuarioPorId(@Path("id") id: Int): Call<Usuario>
 
+    @Headers("Content-Type: application/json")
     @PUT("usuario/{id}")
-    fun atualizarUsuarioPorId(@Path("id") id: Int, usuarioAtualizado: Usuario): Call<Usuario>
+    fun atualizarUsuarioPorId(
+        @Path("id") id: Int,
+        @Body usuarioAtualizado: Usuario
+    ): Call<Usuario>
 
     @POST("usuario/login")
     fun loginUsuario(@Body body: LoginRequest): Call<LoginResponse>
@@ -32,7 +36,12 @@ interface UsuarioService {
         @Path("id") id: Int,
         @Body body: okhttp3.RequestBody
     ): Call<Void>
+
     @GET("usuario/{id}")
     fun getUsuarioPorId(@Path("id") id: Int): Call<UsuarioResult>
+
+    @GET("usuario/{id}")
+    suspend fun getUsuarioPorIdSuspend(@Path("id") id: Int): UsuarioResult
+
 
 }
