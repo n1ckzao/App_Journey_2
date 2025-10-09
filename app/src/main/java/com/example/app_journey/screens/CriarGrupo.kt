@@ -34,7 +34,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.app_journey.model.GruposResult
 
 @Composable
-fun CriarGrupoDefinitivo(navegacao: NavHostController) {
+fun CriarGrupo(navegacao: NavHostController) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -250,5 +250,5 @@ fun CampoTexto(label: String, valor: String, aoMudar: (String) -> Unit) {
 @Composable
 private fun PreviewCriarGrupoDefinitivo() {
     val fakeNav = rememberNavController()
-    CriarGrupoDefinitivo(fakeNav)
+    CriarGrupo(fakeNav)
 }

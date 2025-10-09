@@ -157,7 +157,7 @@ fun AppContent() {
                 composable("recuperacao_senha") { RecuperacaoSenha(navController) }
                 composable("home") { Home(navController) }
                 composable("profile") { Perfil(navController) }
-                composable("criar_grupo") { CriarGrupo(navegacao = navController) }
+                composable("criar_grupo") { CriarGrupo(navController) }
                 composable("meus_grupos") { MeusGrupos(navController) }
 
                 composable("editar_info/{idUsuario}") { backStackEntry ->
