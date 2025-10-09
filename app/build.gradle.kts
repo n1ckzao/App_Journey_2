@@ -75,4 +75,6 @@ dependencies {
     //carregar imagens
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+    //fonte das letras
+    implementation("androidx.compose.ui:ui-text-google-fonts:1.9.2")
 }

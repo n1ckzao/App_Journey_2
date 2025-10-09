@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ButtonDefaults
@@ -20,15 +21,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
+import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.app_journey.model.Usuario
 import com.example.app_journey.service.RetrofitInstance
 import com.example.app_journey.ui.theme.*
 import com.example.app_journey.utils.AzureUploader
 import kotlinx.coroutines.launch
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -152,6 +158,8 @@ fun EditarInfo(
                     value = nome,
                     onValueChange = { nome = it },
                     label = { Text("Nome completo") },
+                    shape = RoundedCornerShape(33.dp),
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     colors = outlinedColors
                 )
@@ -170,6 +178,8 @@ fun EditarInfo(
                     value = email,
                     onValueChange = { email = it },
                     label = { Text("Email") },
+                    shape = RoundedCornerShape(33.dp),
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     colors = outlinedColors
                 )
@@ -182,6 +192,8 @@ fun EditarInfo(
                         dataNascimento = it.take(10).replace(Regex("[^0-9-]"), "")
                     },
                     label = { Text("Data de Nascimento (AAAA-MM-DD)") },
+                    shape = RoundedCornerShape(33.dp),
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     colors = outlinedColors
                 )
@@ -191,6 +203,8 @@ fun EditarInfo(
                     value = descricao,
                     onValueChange = { descricao = it },
                     label = { Text("Descrição") },
+                    shape = RoundedCornerShape(33.dp),
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     colors = outlinedColors
                 )
@@ -200,6 +214,8 @@ fun EditarInfo(
                     value = senha,
                     onValueChange = { senha = it },
                     label = { Text("Nova Senha") },
+                    shape = RoundedCornerShape(33.dp),
+                    singleLine = true,
                     visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth(),
                     colors = outlinedColors
@@ -210,6 +226,8 @@ fun EditarInfo(
                     value = tipoUsuario,
                     onValueChange = { tipoUsuario = it },
                     label = { Text("Tipo de Usuário") },
+                    shape = RoundedCornerShape(33.dp),
+                    singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     colors = outlinedColors
                 )
@@ -230,10 +248,10 @@ fun EditarInfo(
 
                         RetrofitInstance.usuarioService
                             .atualizarUsuarioPorId(usuario.id_usuario, usuarioAtualizado)
-                            .enqueue(object : retrofit2.Callback<Usuario> {
+                            .enqueue(object : Callback<Usuario> {
                                 override fun onResponse(
-                                    call: retrofit2.Call<Usuario>,
-                                    response: retrofit2.Response<Usuario>
+                                    call: Call<Usuario>,
+                                    response: Response<Usuario>
                                 ) {
                                     if (response.isSuccessful) {
                                         onSave(usuarioAtualizado)
@@ -246,12 +264,12 @@ fun EditarInfo(
                                     }
                                 }
 
-                                override fun onFailure(call: retrofit2.Call<Usuario>, t: Throwable) {
+                                override fun onFailure(call: Call<Usuario>, t: Throwable) {
                                     Toast.makeText(context, "Falha: ${t.message}", Toast.LENGTH_SHORT).show()
                                 }
                             })
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = PurpleLighter)
                 ) {
                     Text("Salvar alterações", color = Color(0xFF341E9B))
@@ -319,4 +337,27 @@ fun EditarInfoWrapper(navController: NavController, idUsuario: Int?) {
             }
         }
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+private fun PreviewEditarInfo() {
+    val fakeNav = rememberNavController()
+
+    val fakeUsuario = Usuario(
+        id_usuario = 1,
+        nome_completo = "Nicolas Lima",
+        email = "nicolas@email.com",
+        senha = "123456",
+        data_nascimento = "2000-05-20",
+        descricao = "Explorador do mundo e amante de tecnologia.",
+        tipo_usuario = "Comum",
+        foto_perfil = "https://i.pravatar.cc/300" // imagem de teste
+    )
+
+    EditarInfo(
+        navController = fakeNav,
+        usuario = fakeUsuario,
+        onSave = {}
+    )
 }

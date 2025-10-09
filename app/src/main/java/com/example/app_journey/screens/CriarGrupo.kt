@@ -223,19 +223,26 @@ fun CriarGrupo(navegacao: NavHostController) {
 
 @Composable
 fun CampoTexto(label: String, valor: String, aoMudar: (String) -> Unit) {
+    val outlinedColors = OutlinedTextFieldDefaults.colors(
+        focusedTextColor = Color.White,
+        unfocusedTextColor = Color.White,
+        cursorColor = Color.White,
+        focusedBorderColor = Color.White,
+        unfocusedBorderColor = Color.Gray,
+        focusedLabelColor = Color.White,
+        unfocusedLabelColor = Color.Gray,
+        unfocusedContainerColor = Color.Transparent,
+        focusedContainerColor = Color.Transparent
+    )
     Column {
         Text(label, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
         OutlinedTextField(
             value = valor,
             onValueChange = aoMudar,
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(50.dp)
-                .background(Color(0xFF4A33C3), RoundedCornerShape(25.dp)),
-            textStyle = TextStyle(color = Color.White, fontSize = 16.sp),
-            colors = TextFieldDefaults.colors(
-
-            )
+            shape = RoundedCornerShape(33.dp),
+            singleLine = true,
+            modifier = Modifier.fillMaxWidth(),
+            colors = outlinedColors
         )
     }
 }
