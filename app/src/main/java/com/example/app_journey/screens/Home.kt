@@ -20,9 +20,8 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
 import com.example.app_journey.model.Grupo
-import com.example.app_journey.model.GrupoResponse
+import com.example.app_journey.model.GruposResult
 import com.example.app_journey.service.RetrofitFactory
 import retrofit2.Call
 import retrofit2.Callback
@@ -35,8 +34,8 @@ fun Home(navegacao: NavHostController) {
     // GET grupos ao abrir tela
     LaunchedEffect(Unit) {
         RetrofitFactory().getGrupoService().listarGrupos()
-            .enqueue(object : Callback<GrupoResponse> {
-                override fun onResponse(call: Call<GrupoResponse>, response: Response<GrupoResponse>) {
+            .enqueue(object : Callback<GruposResult> {
+                override fun onResponse(call: Call<GruposResult>, response: Response<GruposResult>) {
                     if (response.isSuccessful) {
                         response.body()?.grupos?.let {
                             grupos.clear()
@@ -45,7 +44,7 @@ fun Home(navegacao: NavHostController) {
                     }
                 }
 
-                override fun onFailure(call: Call<GrupoResponse>, t: Throwable) {
+                override fun onFailure(call: Call<GruposResult>, t: Throwable) {
                     Toast.makeText(context, "Erro ao carregar grupos", Toast.LENGTH_SHORT).show()
                 }
             })

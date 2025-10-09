@@ -18,7 +18,10 @@ interface UsuarioService {
     fun listarUsuarios(): Call<Result>
 
     @GET("usuario/{id}")
-    fun listarUsuarioPorId(@Path("id") id: Int): Call<Usuario>
+    fun getUsuarioPorId(@Path("id") id: Int): Call<UsuarioResult>
+
+    @GET("usuario/{id}")
+    suspend fun getUsuarioPorIdSuspend(@Path("id") id: Int): UsuarioResult
 
     @Headers("Content-Type: application/json")
     @PUT("usuario/{id}")
@@ -27,21 +30,14 @@ interface UsuarioService {
         @Body usuarioAtualizado: Usuario
     ): Call<Usuario>
 
+
     @POST("usuario/login")
     fun loginUsuario(@Body body: LoginRequest): Call<LoginResponse>
 
     @PUT("usuario/senha/{id}")
-    @Headers("Content-Type: application/json") // ✅ garante o tipo certo
+    @Headers("Content-Type: application/json")
     fun redefinirSenhaRaw(
         @Path("id") id: Int,
         @Body body: okhttp3.RequestBody
     ): Call<Void>
-
-    @GET("usuario/{id}")
-    fun getUsuarioPorId(@Path("id") id: Int): Call<UsuarioResult>
-
-    @GET("usuario/{id}")
-    suspend fun getUsuarioPorIdSuspend(@Path("id") id: Int): UsuarioResult
-
-
 }

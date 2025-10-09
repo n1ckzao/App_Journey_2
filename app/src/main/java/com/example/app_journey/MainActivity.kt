@@ -1,3 +1,4 @@
+// MainActivity.kt
 package com.example.app_journey
 
 import android.os.Bundle
@@ -22,18 +23,20 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
+import com.example.app_journey.model.Usuario
 import com.example.app_journey.model.UsuarioResult
 import com.example.app_journey.screens.*
 import com.example.app_journey.service.RetrofitInstance
+import com.example.app_journey.ui.theme.PurpleMedium
 import com.example.app_journey.utils.SharedPrefHelper
 import kotlinx.coroutines.launch
-import retrofit2.Call
-import retrofit2.Callback
-import retrofit2.Response
+import retrofit2.*
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -48,58 +51,55 @@ class MainActivity : ComponentActivity() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppContent() {
+    var usuarioLogado by remember { mutableStateOf<Usuario?>(null) }
+    var carregandoUsuario by remember { mutableStateOf(true) }
+
     val navController = rememberNavController()
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
-
-    // 🔹 Verifica se há usuário salvo no SharedPreferences
     LaunchedEffect(Unit) {
         val idSalvo = SharedPrefHelper.recuperarIdUsuario(context)
-        if (idSalvo != null) {
-            RetrofitInstance.usuarioService.getUsuarioPorId(idSalvo)
-                .enqueue(object : Callback<UsuarioResult> {
-                    override fun onResponse(
-                        call: Call<UsuarioResult>,
-                        response: Response<UsuarioResult>
-                    ) {
-                        if (response.isSuccessful) {
-                            val result = response.body()
-                            if (result != null && !result.usuario.isNullOrEmpty()) {
-                                val usuarioLogado = result.usuario[0]
-                                Log.d("MainActivity", "Usuário logado: ${usuarioLogado.nome_completo}")
-                            } else {
-                                Log.e("MainActivity", "Usuário não encontrado")
-                            }
-                        } else {
-                            Log.e("MainActivity", "Erro ao carregar usuário: ${response.code()}")
-                        }
-                    }
+        Log.d("MainActivity", "ID salvo: $idSalvo")
 
-                    override fun onFailure(call: Call<UsuarioResult>, t: Throwable) {
-                        Log.e("MainActivity", "Erro de rede: ${t.message}")
-                    }
-                })
+        if (idSalvo != null) {
+            try {
+                val result = RetrofitInstance.usuarioService.getUsuarioPorIdSuspend(idSalvo)
+                Log.d("MainActivity", "Resposta API: $result")
+                if (!result.usuario.isNullOrEmpty()) {
+                    usuarioLogado = result.usuario[0]
+                    Log.d("MainActivity", "Usuário carregado: ${usuarioLogado?.nome_completo}")
+                } else {
+                    Log.e("MainActivity", "Usuário não encontrado")
+                }
+            } catch (e: Exception) {
+                Log.e("MainActivity", "Erro de rede: ${e.message}")
+            }
         } else {
-            Log.w("MainActivity", "id_usuario não encontrado no SharedPreferences")
+            Log.w("MainActivity", "id_usuario não encontrado")
         }
+        carregandoUsuario = false
     }
 
+
+    // Observa a rota atual
     val navBackStackEntry = navController.currentBackStackEntryAsState()
     val rotaAtual = navBackStackEntry.value?.destination?.route
 
-    // 🔹 Define quais telas mostram a AppBar
-    val rotasComBarra = listOf("profile", "home", "criargrupo", "editar_info/{idUsuario}")
+    // Rotas que exibem AppBar + Drawer
+    val rotasComBarra = listOf("profile", "home", "criar_grupo", "editar_info/{idUsuario}", "meus_grupos")
 
     ModalNavigationDrawer(
         drawerState = drawerState,
         drawerContent = {
-            DrawerMenu(onOptionSelected = {
+            DrawerMenu(onOptionSelected = { rota ->
+                navController.navigate(rota)
                 scope.launch { drawerState.close() }
             })
         },
         gesturesEnabled = drawerState.isOpen
-    ) {
+    )
+    {
         Scaffold(
             topBar = {
                 if (rotaAtual in rotasComBarra) {
@@ -151,27 +151,28 @@ fun AppContent() {
                 startDestination = "login",
                 modifier = Modifier.padding(paddingValues)
             ) {
+                // Rotas existentes
                 composable("login") { Login(navController) }
                 composable("cadastro") { Cadastro(navController) }
                 composable("recuperacao_senha") { RecuperacaoSenha(navController) }
                 composable("home") { Home(navController) }
                 composable("profile") { Perfil(navController) }
-                composable("criargrupo") { CriarGrupo(navController) }
+                composable("criar_grupo") { CriarGrupo(navegacao = navController) }
+                composable("meus_grupos") { MeusGrupos(navController) }
 
-                // ✅ ROTA ADICIONADA — ESSA FALTAVA E CAUSAVA O CRASH
                 composable("editar_info/{idUsuario}") { backStackEntry ->
                     val idUsuario = backStackEntry.arguments?.getString("idUsuario")?.toIntOrNull()
                     EditarInfoWrapper(navController, idUsuario)
                 }
 
-                composable("redefinir_senha/{idUsuario}") { backStackEntry ->
-                    val idUsuario = backStackEntry.arguments?.getString("idUsuario")?.toIntOrNull()
-                    idUsuario?.let { RedefinirSenha(navController, it) }
-                }
-
                 composable("verificar_email/{email}") { backStackEntry ->
                     val email = backStackEntry.arguments?.getString("email")
                     email?.let { VerificarEmail(navController, it) }
+                }
+
+                composable("redefinir_senha/{idUsuario}") { backStackEntry ->
+                    val idUsuario = backStackEntry.arguments?.getString("idUsuario")?.toIntOrNull()
+                    idUsuario?.let { RedefinirSenha(navController, it) }
                 }
             }
         }

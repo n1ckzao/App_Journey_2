@@ -8,7 +8,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
@@ -17,15 +16,10 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.app_journey.model.Grupo
 import com.example.app_journey.service.RetrofitFactory
@@ -35,11 +29,12 @@ import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.material3.TextFieldDefaults
-
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.navigation.compose.rememberNavController
+import com.example.app_journey.model.GruposResult
 
 @Composable
-fun CriarGrupo(navegacao: NavHostController) {
+fun CriarGrupoDefinitivo(navegacao: NavHostController) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
@@ -100,6 +95,7 @@ fun CriarGrupo(navegacao: NavHostController) {
                     .padding(20.dp)
             ) {
                 Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+
                     // Botão Voltar
                     Button(
                         onClick = { navegacao.navigate("home") },
@@ -163,13 +159,16 @@ fun CriarGrupo(navegacao: NavHostController) {
                                 limite_membros = limite.toInt(),
                                 descricao = descricao,
                                 imagem = imagemUrl!!,
-                                id_area = 1,
+                                id_area = area,
                                 id_usuario = 1
                             )
 
-                            grupoService.inserirGrupo(novoGrupo).enqueue(object : Callback<Grupo> {
-                                override fun onResponse(call: Call<Grupo>, response: Response<Grupo>) {
-                                    if (response.isSuccessful) {
+                            grupoService.inserirGrupo(novoGrupo).enqueue(object : Callback<GruposResult> {
+                                override fun onResponse(
+                                    call: Call<GruposResult>,
+                                    response: Response<GruposResult>
+                                ) {
+                                    if (response.isSuccessful && response.body()?.status == true) {
                                         Toast.makeText(context, "Grupo criado com sucesso!", Toast.LENGTH_SHORT).show()
                                         navegacao.navigate("home")
                                     } else {
@@ -177,7 +176,7 @@ fun CriarGrupo(navegacao: NavHostController) {
                                     }
                                 }
 
-                                override fun onFailure(call: Call<Grupo>, t: Throwable) {
+                                override fun onFailure(call: Call<com.example.app_journey.model.GruposResult>, t: Throwable) {
                                     mensagem = "Erro de rede: ${t.message}"
                                 }
                             })
@@ -249,7 +248,7 @@ fun CampoTexto(label: String, valor: String, aoMudar: (String) -> Unit) {
 
 @Preview(showBackground = true)
 @Composable
-private fun PreviewCriarGrupo() {
+private fun PreviewCriarGrupoDefinitivo() {
     val fakeNav = rememberNavController()
-    CriarGrupo(fakeNav)
+    CriarGrupoDefinitivo(fakeNav)
 }

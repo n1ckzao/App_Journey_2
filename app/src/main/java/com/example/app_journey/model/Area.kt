@@ -5,7 +5,7 @@ data class Area(
     val area: String
 )
 
-data class AreaResponse(
+data class AreaResult(
     val status: Boolean,
     val status_code: Int,
     val itens: Int,

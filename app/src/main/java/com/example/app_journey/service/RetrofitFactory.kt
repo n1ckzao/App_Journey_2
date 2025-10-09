@@ -30,7 +30,6 @@ class RetrofitFactory {
         return retrofit.create(GrupoService::class.java)
     }
 
-    //adicionado
     fun getAreaService(): AreaService {
         return Retrofit.Builder()
             .baseUrl(BASE_URL)
